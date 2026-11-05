@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>North Star Deck</title>
+<meta name="description" content="The North Star pitch deck, for testing: the sign-in and opening animations, and every board of the deck by section.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%225%22 fill=%22%23477DC1%22/%3E%3C/svg%3E">
+<style>
+  @font-face { font-family: 'Deck Inter'; src: url(inter-latin-opsz.woff2) format('woff2'); font-weight: 600; font-style: normal; }
+  :root { --page: #0E1116; --chip: #1A1F27; --line: #2A313C; --line-hover: #3B4554; --ui: #9AA3B2; --ui-strong: #E6E9EF; --accent: #4477BE; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body { margin: 0; background: var(--page); color: var(--ui-strong); font: 14px/1.5 system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+  header.top { padding-top: 44px; padding-bottom: 8px; }
+  h1 { font: 600 34px/1.15 'Deck Inter', Inter, system-ui, sans-serif; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .lede { color: var(--ui); margin: 0; max-width: 640px; }
+
+  /* the section chips stay at the top while you scroll */
+  nav.sections { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--page) 92%, transparent); backdrop-filter: blur(8px);
+    border-bottom: 1px solid #1C222B; margin-top: 22px; }
+  nav.sections .wrap { display: flex; gap: 6px; overflow-x: auto; padding-top: 12px; padding-bottom: 12px; scrollbar-width: none; }
+  nav.sections .wrap::-webkit-scrollbar { display: none; }
+  .chip { flex: none; text-decoration: none; color: var(--ui-strong); background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 13px; white-space: nowrap; }
+  .chip:hover { border-color: var(--line-hover); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* the two animations */
+  .play { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 28px 0 8px; }
+  .play a { display: block; text-decoration: none; background: var(--chip); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .play a:hover { border-color: var(--line-hover); }
+  .play img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+  .play .meta { padding: 12px 14px 14px; }
+  .play h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .play p { margin: 2px 0 0; color: var(--ui); font-size: 13px; }
+  .play .jump { display: flex; gap: 6px; padding: 0 14px 14px; margin-top: -4px; }
+  .play .jump a { display: inline-block; border-radius: 8px; padding: 4px 10px; font-size: 12px; background: #141920; }
+
+  section.group { padding: 30px 0 6px; }
+  section.group h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; display: flex; align-items: baseline; gap: 10px; }
+  section.group h2 .count { color: var(--ui); font-weight: 400; font-size: 13px; }
+  section.group h2 a.anim { font-weight: 400; font-size: 13px; color: #8FB2E4; text-decoration: none; }
+  section.group h2 a.anim:hover { text-decoration: underline; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .board { display: block; padding: 0; border: 0; background: none; text-align: left; color: inherit; cursor: pointer; font: inherit; }
+  .board img { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; border: 1px solid var(--line); background: #1A2230; }
+  .board:hover img { border-color: var(--line-hover); }
+  .board span { display: block; margin-top: 6px; font-size: 12.5px; color: var(--ui); }
+  .board:focus-visible img, .chip:focus-visible, .play a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  footer { color: #5F6878; font-size: 12px; padding-top: 40px; padding-bottom: 48px; }
+
+  /* the viewer: one board at a time, as big as the screen allows */
+  .viewer { position: fixed; inset: 0; z-index: 10; background: #07090C; display: none; flex-direction: column; }
+  .viewer.open { display: flex; }
+  .viewer .stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .viewer img { max-width: 100%; max-height: 100%; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 6px; user-select: none; -webkit-user-drag: none; }
+  .viewer .bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; color: var(--ui); font-size: 13px; flex-wrap: wrap; }
+  .viewer .bar .name { color: var(--ui-strong); flex: 1; min-width: 160px; }
+  .viewer button { font: inherit; color: var(--ui-strong); background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  .viewer button:hover { border-color: var(--line-hover); }
+  .viewer button.arrow { font-size: 16px; line-height: 1; padding: 6px 14px; }
+  .viewer button:disabled { opacity: .35; cursor: default; }
+  .viewer.full .bar { position: absolute; left: 0; right: 0; bottom: 0; opacity: 0; transition: opacity .3s; background: linear-gradient(transparent, #000C); }
+  .viewer.full:hover .bar { opacity: 1; }
+  .viewer.full .stage { padding: 0; }
+  .viewer.full img { border-radius: 0; }
+  @media (max-width: 560px) { h1 { font-size: 28px; } header.top { padding-top: 28px; } .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; } }
+</style>
+</head>
+<body>
+  <header class="top wrap">
+    <h1>North Star Deck</h1>
+    <p class="lede">For testing. The sign-in and the opening play as animations; every board of the deck is below, by section. Click a board to view it full size, then use the arrow keys.</p>
+  </header>
+
+  <nav class="sections" aria-label="sections"><div class="wrap" id="chips"></div></nav>
+
+  <main class="wrap">
+    <div class="play" id="animations">
+      <a href="signin.html">
+        <img src="thumbs/DJV.jpg" alt="The sign-in screen: a panel with a name and an email line" loading="lazy">
+        <div class="meta"><h2>Sign in &middot; animation</h2><p>Typing in, loading, the line sweeping the panel away, and the title with its rings.</p></div>
+      </a>
+      <div style="background: var(--chip); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;">
+        <a href="opening.html" style="border: 0; border-radius: 0;">
+          <img src="thumbs/C57.jpg" alt="Slide 1: Douglass at the press" loading="lazy">
+          <div class="meta"><h2>Opening &middot; animation</h2><p>Slides 1, 1.1 and 1.2, each photo and statement brought in by its line.</p></div>
+        </a>
+        <div class="jump"><a href="opening.html#1">1</a><a href="opening.html#1.1">1.1</a><a href="opening.html#1.2">1.2</a></div>
+      </div>
+    </div>
+    <div id="groups"></div>
+  </main>
+  <footer class="wrap">Boards exported from the Paper file &ldquo;pitch deck&rdquo;, page &ldquo;final&rdquo;.</footer>
+
+  <div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="board viewer">
+    <div class="stage" id="vstage"><img id="vimg" alt=""></div>
+    <div class="bar">
+      <button class="arrow" id="vprev" aria-label="previous board">&larr;</button>
+      <button class="arrow" id="vnext" aria-label="next board">&rarr;</button>
+      <span class="name" id="vname"></span>
+      <span id="vcount"></span>
+      <button id="vfull" title="F">full screen</button>
+      <button id="vclose" title="Esc">close</button>
+    </div>
+  </div>
+
+<script>
+  // every board on the "final" page, in deck order: each section's slides, then the hover states that belong to them
+  const SECTIONS = [
+    { id: 'sign-in', title: 'Sign in', anim: 'signin.html', boards: [['DJV', 'sign in · 1 · the form'], ['DUH', 'sign in · 2 · the name line fills'], ['DLQ', 'sign in · 3 · across the gap'],
+      ['DMQ', 'sign in · 4 · loaded, the white glow'], ['DN4', 'sign in · 5 · the line opens'], ['DNI', 'sign in · 6 · the line sweeps'], ['DO7', 'sign in · 7'],
+      ['DOJ', 'sign in · 8 · the line rests'], ['DOV', 'sign in · 9 · the dipper lights'], ['DTN', 'sign in · 10 · welcome']] },
+    { id: 'title', title: 'Title', boards: [['C4V', 'title']] },
+    { id: 's1', title: 'Slide 1', anim: 'opening.html', boards: [['C57', 'slide 1'], ['DH5', 'slide 1.1'], ['DHK', 'slide 1.2']] },
+    { id: 's2', title: 'Slide 2', boards: [['E15', 'slide 2.1'], ['DGR', 'slide 2.1 · second board']] },
+    { id: 's3', title: 'Slide 3', boards: [['C68', 'slide 3']] },
+    { id: 's4', title: 'Slide 4', boards: [['C6V', 'slide 4'], ['D0O', 'slide 4.1'], ['DEF', 'slide 4.1 · hover · you change something'],
+      ['DF2', 'slide 4.1 · hover · the space adapts'], ['DFP', 'slide 4.1 · hover · it remembers next time']] },
+    { id: 's5', title: 'Slide 5', boards: [['C7C', 'slide 5'], ['CYY', 'slide 5.1'], ['CZD', 'slide 5.2'], ['D00', 'slide 5.3'],
+      ['DCJ', 'slide 5.3 · hover · made for yourself'], ['DD7', 'slide 5.3 · hover · made together'], ['DDR', 'slide 5.3 · hover · shaped by someone else']] },
+    { id: 's6', title: 'Slide 6', boards: [['C7R', 'slide 6'], ['D1B', 'slide 6 · hover · context layer'], ['D21', 'slide 6 · hover · orchestration layer'],
+      ['D2R', 'slide 6 · hover · software layer'], ['D3H', 'slide 6 · hover · the loop']] },
+    { id: 's7', title: 'Slide 7', boards: [['C8H', 'slide 7'], ['CXL', 'slide 7.1']] },
+    { id: 's8', title: 'Slide 8', boards: [['C8W', 'slide 8'], ['D47', 'slide 8 · hover · the feed'], ['D51', 'slide 8 · hover · redline'],
+      ['D5V', 'slide 8 · hover · greater than the sum'], ['D6P', 'slide 8 · hover · jordan brand']] },
+    { id: 's9', title: 'Slide 9', boards: [['C9Q', 'slide 9'], ['CEI', 'slide 9 · hover · consumer ai spending'], ['CJA', 'slide 9 · hover · adults using ai'],
+      ['CO2', 'slide 9 · hover · subscription retention'], ['CT7', 'slide 9.1'], ['CTU', 'slide 9.2']] },
+    { id: 's10', title: 'Slide 10', boards: [['CSU', 'slide 10']] },
+    { id: 's11', title: 'Slide 11', boards: [['CU9', 'slide 11']] },
+    { id: 's12', title: 'Slide 12', boards: [['CUN', 'slide 12'], ['D7J', 'slide 12 · hover · assistants & agents'], ['D8S', 'slide 12 · hover · personal software'],
+      ['DA1', 'slide 12 · hover · creative tools'], ['DBA', 'slide 12 · hover · organizers']] },
+    { id: 's13', title: 'Slide 13', boards: [['CVW', 'slide 13'], ['E1N', 'slide 13 · second board']] },
+    { id: 's14', title: 'Slide 14', boards: [['CWF', 'slide 14'], ['CY0', 'slide 14.1']] },
+    { id: 's15', title: 'Slide 15', boards: [['CYT', 'slide 15']] },
+  ];
+  const ALL = SECTIONS.flatMap(s => s.boards.map(([key, name]) => ({ key, name, section: s.id })));
+  const $ = id => document.getElementById(id);
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  $('chips').innerHTML = SECTIONS.map(s => `<a class="chip" href="#${s.id}" data-id="${s.id}">${esc(s.title)}</a>`).join('');
+  $('groups').innerHTML = SECTIONS.map(s => `
+    <section class="group" id="${s.id}">
+      <h2>${esc(s.title)} <span class="count">${s.boards.length} board${s.boards.length > 1 ? 's' : ''}</span>${s.anim ? ` <a class="anim" href="${s.anim}">play the animation &rarr;</a>` : ''}</h2>
+      <div class="grid">${s.boards.map(([key, name]) => `
+        <button class="board" data-key="${key}" aria-label="view ${esc(name)}"><img src="thumbs/${key}.jpg" alt="" loading="lazy" width="640" height="360"><span>${esc(name)}</span></button>`).join('')}
+      </div>
+    </section>`).join('');
+
+  // the chip for the section in view lights up
+  const chips = [...document.querySelectorAll('.chip')];
+  const watch = new IntersectionObserver(entries => entries.forEach(e => {
+    if (e.isIntersecting) chips.forEach(c => c.classList.toggle('on', c.dataset.id === e.target.id));
+  }), { rootMargin: '-40% 0px -55% 0px' });
+  document.querySelectorAll('section.group').forEach(s => watch.observe(s));
+
+  // the viewer: index.html#C9Q opens straight onto a board
+  let at = -1;
+  const viewer = $('viewer'), vimg = $('vimg');
+  function show(i) {
+    at = (i + ALL.length) % ALL.length; const b = ALL[at];
+    vimg.src = `slides/${b.key}.jpg`; vimg.alt = b.name;
+    $('vname').textContent = b.name; $('vcount').textContent = `${at + 1} / ${ALL.length}`;
+    viewer.classList.add('open'); document.body.style.overflow = 'hidden';
+    history.replaceState(null, '', '#' + b.key);
+    [ALL[at + 1], ALL[at - 1]].forEach(n => { if (n) new Image().src = `slides/${n.key}.jpg`; });   // the neighbours load ahead
+  }
+  function close() {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    viewer.classList.remove('open', 'full'); document.body.style.overflow = '';
+    const b = ALL[at]; history.replaceState(null, '', '#' + (b ? b.section : ''));
+    document.querySelector(`.board[data-key="${b?.key}"]`)?.focus({ preventScroll: true });
+    document.getElementById(b?.section)?.scrollIntoView({ block: 'start' });
+  }
+  document.querySelectorAll('.board').forEach(btn => btn.onclick = () => show(ALL.findIndex(b => b.key === btn.dataset.key)));
+  $('vprev').onclick = () => show(at - 1); $('vnext').onclick = () => show(at + 1); $('vclose').onclick = close;
+  $('vfull').onclick = () => {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else viewer.requestFullscreen?.().catch(() => {});
+  };
+  document.addEventListener('fullscreenchange', () => { viewer.classList.toggle('full', !!document.fullscreenElement); $('vfull').textContent = document.fullscreenElement ? 'exit full screen' : 'full screen'; });
+  $('vstage').onclick = e => { if (e.target === $('vstage')) close(); };
+  addEventListener('keydown', e => {
+    if (!viewer.classList.contains('open')) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(at + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(at - 1); }
+    if (e.key === 'Escape' && !document.fullscreenElement) close();
+    if (e.key === 'f' || e.key === 'F') $('vfull').click();
+  });
+  let touchX = null;                                            // swipe between boards on a phone
+  viewer.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  viewer.addEventListener('touchend', e => {
+    if (touchX === null) return; const dx = e.changedTouches[0].clientX - touchX; touchX = null;
+    if (Math.abs(dx) > 50) show(at + (dx < 0 ? 1 : -1));
+  });
+  const fromHash = () => { const k = location.hash.slice(1), i = ALL.findIndex(b => b.key === k); if (i >= 0) show(i); };
+  fromHash();
+</script>
+</body>
+</html>

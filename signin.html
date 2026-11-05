@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>North Star Sign In</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%225%22 fill=%22%23477DC1%22/%3E%3C/svg%3E">
+<style>
+  @font-face { font-family: 'Deck Inter'; src: url(inter-latin-opsz.woff2) format('woff2'); font-weight: 600; font-style: normal; }
+  :root { --ui: #9AA3B2; --ui-strong: #E6E9EF; --page: #0E1116; --chip: #1A1F27; --accent: #4477BE; color-scheme: dark;
+    /* the sky and the panel, a tint bluer than the boards like the opening (each colour +0.016 OKLCH chroma);
+       the ground sits 2% higher than it first did (owner, 2026-11-02) */
+    --sky: linear-gradient(in oklab 180deg, #477DC1 0%, #5286C7 10.44%, #5E90CD 20.89%, #6B9AD3 31.33%, #78A4D9 39.46%, #85ADDD 46.43%, #91B6E0 52.22%, #9EBDE2 56.86%, #AAC4E4 61.51%, #B5CAE5 66.15%, #BACCE3 70.8%, #B7C8DE 73.59%, #B2C2D8 76.38%, #ACBDD4 79.86%, #A8B8D1 84.05%);
+    --panel: #6294CF; }
+  /* ?paper draws the boards' own colours, for checking renders against the Paper exports */
+  :root.paper { --sky: linear-gradient(in oklab 180deg, #4F7DB8 0%, #5A86BE 10.44%, #6690C4 20.89%, #739ACA 31.33%, #80A4CF 39.46%, #8DADD3 46.43%, #99B5D6 52.22%, #A5BCD8 56.86%, #B1C3DA 61.51%, #BCC9DB 66.15%, #C1CBD8 70.8%, #BEC7D3 73.59%, #B8C1CE 76.38%, #B2BCCA 79.86%, #AEB8C7 84.05%);
+    --panel: #6A94C6; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--page); color: var(--ui-strong);
+    font-family: system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px; }
+  #viewport { position: relative; width: min(100%, calc((100vh - 150px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; }
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background-image: var(--sky); cursor: pointer; }
+  .abs { position: absolute; }
+  .fx { will-change: transform, opacity; }
+  .type { font-family: 'Deck Inter', Inter, sans-serif; font-weight: 600; font-synthesis: none; font-optical-sizing: auto; white-space: pre; }
+
+  /* the boards' pieces, at their board positions (the sign-in boards, then the title DTN) */
+  #floor { left: 178px; top: 985px; width: 1563px; height: 29px; border-radius: 50%; filter: blur(9.33px); background: #424E6661; will-change: transform, opacity; }
+  #pool { left: 862px; top: 830px; width: 196px; height: 99px; filter: blur(3px); will-change: transform, opacity; }
+  #group { left: 0; top: 0; will-change: transform; }              /* the panel and what sits on it float together */
+  #panel { left: 210px; top: 115px; width: 1500px; height: 800px; background: var(--panel); transform-origin: 50% 100%; }
+  .outline { left: 193px; top: 98px; width: 1534px; height: 834px; border: 10px solid #FFFFFF4D; }
+  #outlineLit { border-color: #FFFFFF; }
+  /* the white moment glows faintly: the ring and the full bar turn pure white with the same halo, and the stars glow */
+  #outlineGlow { border-color: transparent; box-shadow: 0 0 16px 0 #FFFFFF1F; }
+  #fillGlow { left: 0; top: 0; width: 1223px; height: 10px; background: #FFFFFF; box-shadow: 0 0 16px 0 #FFFFFF1F; }   /* the ring's own lit white and halo */
+  #dipperGlow { left: 864px; top: 450px; filter: drop-shadow(0 0 3px #FFFFFF59); will-change: opacity; }
+  .label, .typed { top: 781px; font-size: 30px; line-height: 36px; }
+  .label { color: #C0C9D64F; }
+  .typed { color: #FFFFFFBF; }                                      /* what the person types, in the statements' white */
+  #caret { width: 3px; height: 32px; top: 783px; background: #FFFFFFBF; border-radius: 1px; }
+  #bar { left: 348.5px; top: 829px; width: 1223px; height: 10px; transform-origin: 50% 0; }   /* the fields, then the loading bar; centred on the panel (960) */
+  #barDim { left: 0; top: 0; width: 1223px; height: 10px; background: #FFFFFF4D; }
+  #gap { left: 550px; top: 0; width: 123px; height: 10px; background: var(--panel); }  /* between the two fields; only the white bar crosses it */
+  /* the board's #FFFFFFC4 white as laid on the panel, but solid, so it reads the same over the lines and over the gap */
+  #fill { left: 0; top: 0; width: 1223px; height: 10px; background: color-mix(in srgb, #FFFFFF 77%, var(--panel)); transform-origin: 0 0; }
+  /* after the glow the full bar goes back down to #FFFFFF at 30%, like the ring (solid, so it reads the same over the lines and the gap) */
+  #fillRest { left: 0; top: 0; width: 1223px; height: 10px; background: color-mix(in srgb, #FFFFFF 30%, var(--panel)); }
+  #dipper { left: 864px; top: 450px; will-change: opacity; }
+  #line { left: 98.5px; top: 0; width: 1723px; height: 10px; background: #FFFFFF4D; transform-origin: 50% 0; will-change: transform; }
+  /* the title's rings (with the stars' reflection), then their shadows, then last its line of text (DTN) */
+  .ring { width: 24px; height: 24px; border-radius: 50%; will-change: opacity; }
+  #ringBack { left: 75px; top: 961.38px; outline: 5px solid #E9E9EB40;
+    filter: drop-shadow(#FFFFFF40 0 -1px .5px) drop-shadow(#3D72B61A 1px 0 1px) drop-shadow(#3D72B61A -1px 0 1px); }
+  #ringFwd { left: 1824px; top: 966px; outline: 5px solid #FFFFFF;
+    filter: drop-shadow(#FFFFFF40 0 -1px .5px) drop-shadow(#FFFFFF1A 1px 0 1px) drop-shadow(#FFFFFF1A -1px 0 1px); will-change: opacity; }
+  .ringbar { width: 24px; height: 8px; border-radius: 8px; filter: blur(6px); background: #00000047; will-change: opacity; }
+  #ringBarBack { left: 75px; top: 1036px; }
+  #ringBarFwd { left: 1824px; top: 1040.62px; }
+  #welcome { left: 370px; top: 1005px; width: 1180px; font-size: 25px; line-height: 44px; text-align: center; color: #0000002B; opacity: 0; will-change: opacity; }
+  #fwdHit { left: 1796px; top: 938px; width: 80px; height: 80px; border-radius: 50%; cursor: pointer; display: none; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: min(100%, calc((100vh - 150px) * 16 / 9)); font-size: 13px; color: var(--ui); }
+  button, .controls a { font: inherit; color: var(--ui-strong); background: var(--chip); border: 1px solid #2A313C; border-radius: 8px; padding: 6px 12px; cursor: pointer; text-decoration: none; }
+  button:hover, .controls a:hover { border-color: #3B4554; }
+  button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .35; cursor: default; }
+  .group { display: flex; gap: 6px; align-items: center; }
+  .nav button.arrow { font-size: 16px; line-height: 1; padding: 6px 14px; }
+  .track { position: relative; flex: 1 1 320px; height: 34px; display: flex; align-items: flex-end; min-width: 220px; }
+  .track input { width: 100%; margin: 0; accent-color: var(--accent); }
+  .tick { position: absolute; top: 9px; width: 1px; height: 7px; background: #4A5363; translate: -50%; cursor: pointer; }
+  .tick:hover { background: var(--ui-strong); }
+  .time { font-variant-numeric: tabular-nums; min-width: 92px; text-align: right; }
+  .sweep input { width: 130px; accent-color: var(--accent); }
+  .sweep .time { min-width: 48px; }
+  button:focus-visible, .track input:focus-visible, .controls a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  body.present { padding: 0; background: #000; }
+  body.present .controls { display: none; }
+  body.present #viewport { position: fixed; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; background: #000; }
+  body.present.idle, body.present.idle #stage { cursor: none; }
+</style>
+</head>
+<body>
+  <div id="viewport">
+    <div id="stage">
+      <div class="abs" id="floor"></div>
+      <div class="abs" id="pool"><svg width="196" height="96" viewBox="-4 0 196 96" aria-hidden="true" style="filter: blur(3px); display: block">
+        <path d="M15.9,35.1 A9,1.4 0 1 0 -2.1,35.1 A9,1.4 0 1 0 15.9,35.1 Z M47.6,8.1 A9,1.4 0 1 0 29.6,8.1 A9,1.4 0 1 0 47.6,8.1 Z M78.4,35.1 A9,1.4 0 1 0 60.4,35.1 A9,1.4 0 1 0 78.4,35.1 Z M118.0,54.9 A9,1.4 0 1 0 100.0,54.9 A9,1.4 0 1 0 118.0,54.9 Z M128.8,88.3 A9,1.4 0 1 0 110.8,88.3 A9,1.4 0 1 0 128.8,88.3 Z M178.4,88.3 A9,1.4 0 1 0 160.4,88.3 A9,1.4 0 1 0 178.4,88.3 Z M189.2,46.2 A9,1.4 0 1 0 171.2,46.2 A9,1.4 0 1 0 189.2,46.2 Z" fill="rgb(14 22 58 / 55%)"/>
+      </svg></div>
+      <div class="abs" id="group">
+        <div class="abs fx" id="panel"></div>
+        <div class="abs outline fx" id="outlineDim"></div>
+        <div class="abs outline fx" id="outlineGlow"></div>
+        <div class="abs outline fx" id="outlineLit"></div>
+        <div class="abs type label fx" id="labelName" style="left:348.5px">name</div>
+        <div class="abs type label fx" id="labelEmail" style="left:1021.5px">email</div>
+        <div class="abs type typed fx" id="typedName" style="left:348.5px"></div>
+        <div class="abs type typed fx" id="typedEmail" style="left:1021.5px"></div>
+        <div class="abs fx" id="caret"></div>
+        <div class="abs fx" id="bar">
+          <div class="abs" id="barDim"></div>
+          <div class="abs fx" id="gap"></div>
+          <div class="abs fx" id="fill"></div>
+          <div class="abs fx" id="fillRest"></div>
+          <div class="abs fx" id="fillGlow"></div>
+        </div>
+      </div>
+      <svg class="abs" id="dipperGlow" width="188" height="96" viewBox="69.022 -248.05 188.016 96.026" aria-hidden="true" fill="#FFFFFF"></svg>
+      <svg class="abs" id="dipper" width="188" height="96" viewBox="69.022 -248.05 188.016 96.026" aria-hidden="true" fill="#FFFFFF">
+        <path transform="translate(0 10.3)" d="M76.131-231.234C80.099-231.234 83.322-227.68 83.322-223.295 83.322-218.91 80.099-215.352 76.131-215.352 72.161-215.352 68.941-218.91 68.941-223.295 68.941-227.68 72.161-231.234 76.131-231.234Z"/>
+        <path transform="translate(13.33 0)" d="M94.436-247.937C98.41-247.937 101.631-244.383 101.631-239.997 101.631-235.614 98.41-232.055 94.436-232.055 90.467-232.055 87.251-235.614 87.251-239.997 87.251-244.383 90.467-247.937 94.436-247.937Z"/>
+        <path transform="translate(26.35 10.3)" d="M112.316-231.234C116.288-231.234 119.51-227.68 119.51-223.295 119.51-218.91 116.288-215.352 112.316-215.352 108.348-215.352 105.124-218.91 105.124-223.295 105.124-227.68 108.348-231.234 112.316-231.234Z"/>
+        <path transform="translate(43.02 17.87)" d="M135.218-218.964C139.189-218.964 142.413-215.409 142.413-211.024 142.413-206.638 139.189-203.08 135.218-203.08 131.249-203.08 128.031-206.638 128.031-211.024 128.031-215.409 131.249-218.964 135.218-218.964Z"/>
+        <path transform="translate(47.56 30.6)" d="M141.452-198.313C145.423-198.313 148.642-194.758 148.642-190.374 148.642-185.989 145.423-182.43 141.452-182.43 137.481-182.43 134.265-185.989 134.265-190.374 134.265-194.758 137.481-198.313 141.452-198.313Z"/>
+        <path transform="translate(68.46 30.6)" d="M170.156-198.313C174.127-198.313 177.347-194.758 177.347-190.374 177.347-185.989 174.127-182.43 170.156-182.43 166.184-182.43 162.966-185.989 162.966-190.374 162.966-194.758 166.184-198.313 170.156-198.313Z"/>
+        <path transform="translate(73.01 14.54)" d="M176.41-224.362C180.381-224.362 183.603-220.808 183.603-216.423 183.603-212.033 180.381-208.476 176.41-208.476 172.439-208.476 169.222-212.033 169.222-216.423 169.222-220.808 172.439-224.362 176.41-224.362Z"/>
+      </svg>
+      <div class="abs" id="line"></div>
+      <div class="abs ringbar" id="ringBarBack"></div>
+      <div class="abs ringbar" id="ringBarFwd"></div>
+      <div class="abs ring" id="ringBack"></div>
+      <div class="abs ring" id="ringFwd"></div>
+      <div class="abs type" id="welcome">welcome to our journey, calvary. tap the circle on the bottom right to move forward.</div>
+      <div class="abs" id="fwdHit" title="go to the opening"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="group nav">
+      <button id="prev" class="arrow" aria-label="back to the sign-in screen">&larr;</button>
+      <div class="group" id="boards"></div>
+      <button id="next" class="arrow" aria-label="sign in">&rarr;</button>
+    </div>
+    <div class="group">
+      <button id="play">sign in</button>
+      <button id="replay">replay</button>
+    </div>
+    <div class="track" id="track">
+      <input id="scrub" type="range" min="0" max="10000" value="0" aria-label="the sign-in timeline">
+    </div>
+    <div class="group" id="speeds">
+      <button data-speed="0.25">0.25×</button>
+      <button data-speed="0.5">0.5×</button>
+      <button data-speed="1" class="on">1×</button>
+    </div>
+    <span class="time" id="time">0.00 s</span>
+    <label class="group sweep" for="sweep" title="how long the line takes to sweep down the panel">line
+      <input id="sweep" type="range" min="600" max="2800" step="50" value="1800" aria-label="line sweep time">
+      <span class="time" id="sweepv">1.80 s</span></label>
+    <button id="full" title="F">full screen</button>
+    <a href="index.html">menu</a>
+    <a href="opening.html">opening &rarr;</a>
+  </div>
+
+<script>
+  // Built from the Paper boards on "final": DJV, DUH, DLQ, DMQ, DN4, DNI, DO7, DOJ, DOV, then the title DTN.
+  // 1 sign in: the panel with its outline, the dipper faint, a name and an email line · someone types a name, then an
+  // email · 2 a white bar runs left to right along the name line · 3 it crosses the gap into the email line; it is the
+  // only thing that joins them · 4 it is full; the outline, the bar and the dipper glow white · 5 the glow goes, the
+  // bar back down to #FFFFFF at 30% like the outline; then the bar closes into its centre while a line opens across
+  // the top · 6–7 the line sweeps down and the panel is gone
+  // above it · 8 the line rests below where the panel was, the panel's shadow gone with it · 9 the line closes into its
+  // centre, then the dipper lights with a glow flash, its reflection arriving with it · 10 the two rings come in with
+  // the reflection, then their shadows; last, the line of text fades in softly; once it has, the forward ring starts
+  // to flash gently, inviting a tap, and the stars breathe.
+  // Every line follows the deck's: it opens from its centre, travels at an even speed, rests, then closes back into
+  // its centre. It never fades. Everything that moves per frame is a transform or an opacity.
+  const PAPER = new URLSearchParams(location.search).has('paper');
+  if (PAPER) document.documentElement.classList.add('paper');
+
+  // what the person types (change these two to change the demo)
+  const NAME = 'calvary rogers', EMAIL = 'calvary@example.com';
+
+  const PANEL_TOP = 115, PANEL_BOTTOM = 915, PANEL_H = 800;
+  const LINE_TOP = 48, LINE_REST = 945, LINE_W = 1723, LINE_H = 10;
+  const SHADOW_FROM = 707;                                     // the shadow goes as the line crosses the panel's last part
+  const FILL_AT = { duh: 550 / 1223, dlq: 698 / 1223 };        // the bar on DUH (the name line full) and on DLQ (across the gap)
+
+  // timing (ms at 1×)
+  const CARET_ON = 250, KEY = 85, NEXT_FIELD = 450, SEND = 500;   // typing: the caret, a key, a field change, a beat before sending
+  const TYPED_OUT = 300, FILL_DELAY = 150, FILL_DUR = 1600;
+  const LIGHT_DUR = 300, HOLD = 520, QUIET = 400;               // the white glow: in, held a hair longer, out
+  const GROW = 480, GAP = 80, SETTLE = 140;                     // the line: open, pause, travel, rest, close (= GROW)
+  // at the end the dipper lights with the same glow flash (in, hold, out); its reflection comes in with it and stays
+  const FLASH_IN = LIGHT_DUR, FLASH_HOLD = 300, FLASH_OUT = QUIET;
+  const SETTLE_BEAT = 250;                                      // after the flash, the reflection eases to the title board's
+  const SH_DELAY = 120, SH_FADE = 800;                          // a ring's shadow fades in just after the ring is in
+  const BREATHE = 5000, BREATHE_DEPTH = .22;                     // one slow breath every 5s, down to 78% and back
+  const PULSE = 2400, PULSE_LOW = .25;                          // the forward ring: full → 25% → full, gently, on a loop
+  const FLOAT = 4, FLOAT_PERIOD = 6000;
+  let SWEEP = 1800;                                            // the big line's travel; about the opening's line speed
+  let T = {};                                                  // the timeline, rebuilt when the sweep changes
+
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const soft = u => (1 - Math.cos(Math.PI * u)) / 2;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const span = (t, [a, b]) => clamp((t - a) / (b - a));
+  const inverse = (f, y) => { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; (f(m) < y ? lo = m : hi = m); } return (lo + hi) / 2; };
+  const RAMP = .2, VMAX = 1 / (1 - RAMP);
+  const travel = u => u < RAMP ? VMAX * u * u / (2 * RAMP) : u < 1 - RAMP ? VMAX * (RAMP / 2 + u - RAMP) : 1 - VMAX * (1 - u) * (1 - u) / (2 * RAMP);
+
+  // keystrokes: an uneven but repeatable rhythm, a little longer after a space or an @
+  function keys(text, start) {
+    const at = []; let k = start;
+    for (let i = 0; i < text.length; i++) { at.push(k); k += KEY * (1 + .35 * Math.sin(i * 2.7 + text.length)) + (' @.'.includes(text[i]) ? 70 : 0); }
+    return { at, end: k };
+  }
+
+  // the rings: no lines, they fade in with the reflection · the words: one soft fade, last, after the rings' shadows
+  const WORDS_BEAT = 150, WORDS_FADE = 1100, WORDS_OP = .81;     // the words, last; WORDS_OP: their own opacity on the board
+
+  function build() {
+    const name = keys(NAME, CARET_ON + 350), email = keys(EMAIL, name.end + NEXT_FIELD);
+    const send = email.end + SEND, fill0 = send + FILL_DELAY, fill1 = fill0 + FILL_DUR;
+    const light1 = fill1 + LIGHT_DUR, quiet = light1 + HOLD, open0 = quiet + QUIET;
+    const sweep0 = open0 + GROW + GAP, sweep1 = sweep0 + SWEEP, close0 = sweep1 + SETTLE, close1 = close0 + GROW;
+    const flash0 = close1, end = flash0 + FLASH_IN + FLASH_HOLD + FLASH_OUT;   // the flash comes once the line has closed
+    const bar0 = flash0 + FLASH_IN + SH_DELAY;                   // the rings arrive with the reflection; then their shadows
+    const words0 = Math.max(end, bar0 + SH_FADE) + WORDS_BEAT;   // last, the words, once the shadows are in
+    const final = Math.max(end + SETTLE_BEAT + 800, words0 + WORDS_FADE);   // done once the words are in
+    const lineAtY = y => sweep0 + SWEEP * inverse(travel, (y - LINE_TOP) / (LINE_REST - LINE_TOP));
+    const fillAt = p => fill0 + FILL_DUR * inverse(soft, p);
+    T = { name, email, send, fill0, fill1, light0: fill1, light1, quiet, open0, sweep0, sweep1, close0, close1, flash0, end, words0, bar0, final };
+    T.boards = [0, fillAt(FILL_AT.duh), fillAt(FILL_AT.dlq), light1, sweep0, lineAtY(296), lineAtY(697), close0, flash0 + FLASH_IN, final];
+  }
+  build();
+
+  const lineMove = (t, start, dur, y0, y1) => {                 // a line of the deck's kind: { y, open fraction }
+    const open = ease(span(t, [start, start + GROW])), close = ease(span(t, [start + GROW + GAP + dur + SETTLE, start + 2 * GROW + GAP + dur + SETTLE]));
+    return { y: y0 + (y1 - y0) * travel(span(t, [start + GROW + GAP, start + GROW + GAP + dur])), w: open * (1 - close), on: t >= start && close < 1 };
+  };
+
+  // the whole state at time t, as plain numbers
+  function stateAt(t) {
+    const quiet = soft(span(t, [T.quiet, T.quiet + QUIET]));
+    const lit = soft(span(t, [T.light0, T.light1])) * (1 - quiet);
+    const arrive = soft(span(t, [T.flash0, T.flash0 + FLASH_IN]));
+    const endGlow = arrive * (1 - soft(span(t, [T.flash0 + FLASH_IN + FLASH_HOLD, T.end])));
+    const big = lineMove(t, T.open0, SWEEP, LINE_TOP, LINE_REST), swept = t >= T.sweep0;
+    const typedOut = 1 - soft(span(t, [T.send, T.send + TYPED_OUT]));
+    const nName = T.name.at.filter(k => k <= t).length, nEmail = T.email.at.filter(k => k <= t).length;
+    const words = soft(span(t, [T.words0, T.words0 + WORDS_FADE]));
+    return {
+      labelName: 1 - soft(span(t, [T.name.at[0], T.name.at[0] + 120])),
+      labelEmail: 1 - soft(span(t, [T.email.at[0], T.email.at[0] + 120])),
+      typedName: NAME.slice(0, nName), typedEmail: EMAIL.slice(0, nEmail), typed: typedOut,
+      caret: t < CARET_ON || t >= T.send ? null : {
+        field: t < T.email.at[0] - NEXT_FIELD / 2 ? 'name' : 'email',
+        idle: t - Math.max(CARET_ON, ...T.name.at.concat(T.email.at).filter(k => k <= t)) },
+      fill: soft(span(t, [T.fill0, T.fill1])),
+      fillRest: t >= T.light1 ? 1 : 0,                         // swapped in under the full white, so the glow fades down to it
+      bar: 1 - ease(span(t, [T.open0, T.open0 + GROW])),        // the bar closes into its centre as the line opens
+      outlineDim: 1 - quiet, outlineLit: lit,
+      dipper: Math.max(lit, arrive), dipperGlow: Math.max(lit, endGlow),
+      line: big.on ? big : null,
+      cut: swept ? big.y + LINE_H : PANEL_TOP,                  // the panel is gone above this
+      floor: 1 - soft(clamp((big.y - SHADOW_FROM) / (LINE_REST - SHADOW_FROM))),
+      pool: arrive, poolSettle: soft(span(t, [T.end + SETTLE_BEAT, T.end + SETTLE_BEAT + 800])),   // eases to the title board's reflection
+      rings: arrive,                                            // the rings come in with the reflection, on its curve
+      words, bars: soft(span(t, [T.bar0, T.bar0 + SH_FADE])),
+    };
+  }
+
+  const $ = id => document.getElementById(id);
+  const el = Object.fromEntries(['floor', 'pool', 'group', 'panel', 'outlineDim', 'outlineLit', 'outlineGlow', 'fillGlow', 'dipperGlow',
+    'labelName', 'labelEmail', 'typedName', 'typedEmail', 'caret', 'bar', 'gap', 'fill', 'fillRest', 'dipper', 'line',
+    'ringBack', 'ringFwd', 'ringBarBack', 'ringBarFwd', 'welcome', 'fwdHit'].map(k => [k, $(k)]));
+  el.dipperGlow.innerHTML = el.dipper.innerHTML;                // the glow is a copy of the stars under them
+  const FAINT = 0x1C / 255;                                    // the dipper's faint fill, #FFFFFF1C
+  let stageScale = 1, floatOn = !PAPER, floatClock = 0, breatheOn = !PAPER, breathClock = 0, pulseClock = 0;
+  const shown = { name: null, email: null };
+  function render(t) {
+    const s = stateAt(t), px = stageScale * (window.devicePixelRatio || 1);
+    const f = floatOn ? FLOAT * Math.sin(2 * Math.PI * floatClock / FLOAT_PERIOD) : 0, low = (f / FLOAT + 1) / 2;
+    const snap = y => Math.round(y * px) / px;
+    el.group.style.transform = `translate3d(0, ${f}px, 0)`;
+    // typing: the words, and a caret after them that blinks once the keys stop
+    if (shown.name !== s.typedName) { el.typedName.textContent = shown.name = s.typedName; }
+    if (shown.email !== s.typedEmail) { el.typedEmail.textContent = shown.email = s.typedEmail; }
+    el.labelName.style.opacity = s.labelName; el.labelEmail.style.opacity = s.labelEmail;
+    el.typedName.style.opacity = el.typedEmail.style.opacity = s.typed;
+    if (s.caret) {
+      const field = s.caret.field === 'name' ? el.typedName : el.typedEmail, x = (s.caret.field === 'name' ? 348.5 : 1021.5) + field.offsetWidth + 3;
+      const on = s.caret.idle < 400 || Math.floor((s.caret.idle - 400) / 530) % 2 === 1;
+      el.caret.style.transform = `translate3d(${x}px, 0, 0)`; el.caret.style.opacity = on ? 1 : 0;
+    } else el.caret.style.opacity = 0;
+    // the panel keeps its bottom edge and loses its top to the line; the cut lands on whole device pixels
+    const cut = Math.max(PANEL_TOP + f, snap(s.cut)), h = Math.max(0, PANEL_BOTTOM + f - cut);
+    el.panel.style.transform = `scaleY(${h / PANEL_H})`;
+    el.panel.style.opacity = h > 0 ? 1 : 0;
+    el.outlineDim.style.opacity = s.outlineDim; el.outlineLit.style.opacity = el.outlineGlow.style.opacity = s.outlineLit;
+    el.fillGlow.style.opacity = s.outlineLit; el.dipperGlow.style.opacity = s.dipperGlow;   // the glow belongs to the flashes only
+    el.fill.style.transform = `scaleX(${s.fill})`;
+    el.fillRest.style.opacity = s.fillRest;
+    el.bar.style.transform = `scaleX(${s.bar})`;
+    el.bar.style.opacity = s.bar > 0 ? 1 : 0;
+    const breath = breatheOn ? (1 - Math.cos(2 * Math.PI * breathClock / BREATHE)) / 2 : 0;   // starts at full, no jump
+    el.dipper.style.opacity = (FAINT + (1 - FAINT) * s.dipper) * (1 - BREATHE_DEPTH * breath);
+    el.pool.style.opacity = s.pool * (1 - .34 * s.poolSettle);
+    el.pool.style.transform = `translate3d(${2 * s.poolSettle}px, ${-5 * s.poolSettle}px, 0)`;
+    el.floor.style.opacity = s.floor * (.85 + .15 * low);
+    el.floor.style.transform = `scaleX(${.95 + .05 * low})`;
+    el.line.style.transform = s.line ? `translate3d(0, ${snap(s.line.y)}px, 0) scaleX(${s.line.w})` : 'scaleX(0)';
+    // the rings with the reflection, then their shadows, then the words
+    el.welcome.style.opacity = WORDS_OP * s.words;
+    el.ringBack.style.opacity = s.rings;
+    el.ringBarBack.style.opacity = el.ringBarFwd.style.opacity = s.bars;
+    const pulse = breatheOn ? (1 + Math.cos(2 * Math.PI * pulseClock / PULSE)) / 2 : 1;   // starts at full
+    el.ringFwd.style.opacity = s.rings * (PULSE_LOW + (1 - PULSE_LOW) * pulse);
+    el.fwdHit.style.display = t >= T.final ? 'block' : 'none';
+  }
+
+  // playback: board 1 waits for sign in; sign in types, loads and plays through to the title. Back rewinds to board 1.
+  let t = 0, dir = 1, speed = 1, playing = false, last = performance.now(), ready = false;
+  const NAMES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+  const scrub = $('scrub');
+  function setPlaying(p) { playing = p; $('play').textContent = p ? 'pause' : (t >= T.final ? 'replay' : t > 0 ? 'play' : 'sign in'); }
+  const signIn = () => { dir = 1; if (t >= T.final) return; setPlaying(true); };
+  const back = () => { if (t <= 0) return; dir = -1; setPlaying(true); };
+  const seek = v => { t = clamp(v, 0, T.final); setPlaying(false); };
+  function frame(now) {
+    const dt = Math.min(now - last, 34) * speed; last = now;
+    if (ready && playing) {
+      t += dt * dir * (dir < 0 ? 2 : 1);                        // rewinding runs twice as fast
+      if (t >= T.final || t <= 0) { t = clamp(t, 0, T.final); setPlaying(false); }
+    }
+    if (ready && floatOn) floatClock += dt;
+    breathClock = ready && t >= T.end ? breathClock + dt : 0;   // the stars breathe once the dipper has lit
+    pulseClock = ready && t >= T.final ? pulseClock + dt : 0;   // the forward ring flashes only once the words have shown
+    render(t);
+    scrub.value = Math.round(t / T.final * 10000);
+    $('time').textContent = (t / 1000).toFixed(2) + ' s';
+    markBoard();
+    requestAnimationFrame(frame);
+  }
+  $('play').onclick = () => { if (playing) setPlaying(false); else if (t >= T.final) { t = 0; signIn(); } else signIn(); };
+  $('replay').onclick = () => { t = 0; signIn(); };
+  $('next').onclick = signIn;
+  $('prev').onclick = back;
+  $('stage').onclick = () => { if (t >= T.final) t = 0; signIn(); };
+  el.fwdHit.onclick = e => { e.stopPropagation(); location.href = 'opening.html'; };   // tap the forward ring: on to the opening
+  scrub.oninput = () => seek(scrub.value / 10000 * T.final);
+  document.querySelectorAll('#speeds button').forEach(btn => btn.onclick = () => {
+    speed = +btn.dataset.speed;
+    document.querySelectorAll('#speeds button').forEach(x => x.classList.toggle('on', x === btn));
+  });
+
+  // a button and a timeline tick for each of the ten boards; either one shows that board, still
+  const boardBtns = NAMES.map((name, k) => {
+    const b = document.createElement('button'); b.textContent = name; b.title = `board ${k + 1}`; b.onclick = () => seek(T.boards[k]);
+    $('boards').appendChild(b); return b;
+  });
+  function markBoard() {
+    const k = T.boards.findIndex(bt => Math.abs(bt - t) < 1);
+    boardBtns.forEach((b, i) => b.classList.toggle('on', i === k));
+    $('prev').disabled = t <= 0; $('next').disabled = t >= T.final;
+  }
+  function drawTicks() {
+    $('track').querySelectorAll('.tick').forEach(x => x.remove());
+    T.boards.forEach((bt, n) => {
+      const tick = document.createElement('span');
+      tick.className = 'tick'; tick.style.left = (bt / T.final * 100) + '%'; tick.title = `board ${n + 1}`;
+      tick.onclick = () => seek(bt);
+      $('track').appendChild(tick);
+    });
+  }
+  drawTicks();
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); signIn(); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); back(); }
+    if (e.key === 'r') { t = 0; signIn(); }
+    const n = e.key === '0' ? 10 : +e.key; if (n >= 1 && n <= 10) seek(T.boards[n - 1]);
+  });
+
+  // the screen around the slide continues the same sky
+  const SKY = PAPER
+    ? [['#4F7DB8', 0], ['#5A86BE', 10.44], ['#6690C4', 20.89], ['#739ACA', 31.33], ['#80A4CF', 39.46], ['#8DADD3', 46.43], ['#99B5D6', 52.22], ['#A5BCD8', 56.86], ['#B1C3DA', 61.51], ['#BCC9DB', 66.15], ['#C1CBD8', 70.8], ['#BEC7D3', 73.59], ['#B8C1CE', 76.38], ['#B2BCCA', 79.86], ['#AEB8C7', 84.05]]
+    : [['#477DC1', 0], ['#5286C7', 10.44], ['#5E90CD', 20.89], ['#6B9AD3', 31.33], ['#78A4D9', 39.46], ['#85ADDD', 46.43], ['#91B6E0', 52.22], ['#9EBDE2', 56.86], ['#AAC4E4', 61.51], ['#B5CAE5', 66.15], ['#BACCE3', 70.8], ['#B7C8DE', 73.59], ['#B2C2D8', 76.38], ['#ACBDD4', 79.86], ['#A8B8D1', 84.05]];
+  let presenting = false, idleTimer = 0;
+  const fit = () => {
+    const vp = $('viewport'), w = vp.clientWidth, h = vp.clientHeight;
+    stageScale = presenting ? Math.min(w / 1920, h / 1080) : w / 1920;
+    const ox = presenting ? (w - 1920 * stageScale) / 2 : 0, oy = presenting ? (h - 1080 * stageScale) / 2 : 0;
+    $('stage').style.transform = `translate(${ox}px, ${oy}px) scale(${stageScale})`;
+    vp.style.background = presenting ? `linear-gradient(in oklab 180deg, ${SKY.map(([c, p]) => `${c} ${(oy + p / 100 * 1080 * stageScale).toFixed(1)}px`).join(', ')})` : '';
+  };
+  addEventListener('resize', fit); fit();
+  function present(on) {
+    if (on === presenting) return;
+    presenting = on; document.body.classList.toggle('present', on); $('full').textContent = on ? 'exit full screen' : 'full screen';
+    if (on) document.documentElement.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    requestAnimationFrame(fit); wake();
+  }
+  function wake() {
+    document.body.classList.remove('idle'); clearTimeout(idleTimer);
+    if (presenting) idleTimer = setTimeout(() => document.body.classList.add('idle'), 2000);
+  }
+  $('full').onclick = () => present(!presenting);
+  addEventListener('mousemove', wake);
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) present(false); else fit(); });
+  addEventListener('keydown', e => {
+    if (e.key === 'f' || e.key === 'F') present(!presenting);
+    if (e.key === 'Escape') present(false);
+  });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) floatOn = breatheOn = false;
+
+
+
+  // line speed: applies at once; the timeline keeps its place by board
+  const sweepIn = $('sweep');
+  const setSweep = v => {
+    const at = T.final ? t / T.final : 0; SWEEP = +v; build(); t = at * T.final; drawTicks();
+    $('sweepv').textContent = (SWEEP / 1000).toFixed(2) + ' s';
+  };
+  try { const saved = localStorage.getItem('northstar-signin-sweep'); if (saved) { sweepIn.value = saved; setSweep(saved); } } catch (e) {}
+  sweepIn.oninput = () => setSweep(sweepIn.value);
+  sweepIn.onchange = () => { try { localStorage.setItem('northstar-signin-sweep', sweepIn.value); } catch (e) {} };
+
+  document.fonts.ready.then(() => { ready = true; last = performance.now(); });
+  setPlaying(false);
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>

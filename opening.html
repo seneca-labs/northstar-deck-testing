@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>North Star Opening</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%225%22 fill=%22%23477DC1%22/%3E%3C/svg%3E">
+<style>
+  /* Inter 4 Semibold with its optical-size axis, as Paper sets it (the tighter display cut at 30px).
+     Served beside the page so every browser draws and wraps the statements the same way. */
+  @font-face { font-family: 'Deck Inter'; src: url(inter-latin-opsz.woff2) format('woff2'); font-weight: 600; font-style: normal; }
+  :root { --ui: #9AA3B2; --ui-strong: #E6E9EF; --page: #0E1116; --chip: #1A1F27; --accent: #4477BE; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--page); color: var(--ui-strong);
+    font-family: system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px; }
+  #viewport { position: relative; width: min(100%, calc((100vh - 150px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; }
+  /* the deck's sky, a tint bluer than the boards (owner, 2026-11-01): each stop +0.016 OKLCH chroma, same lightness and hue */
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden;
+    background-image: linear-gradient(in oklab 180deg, #477DC1 0%, #5286C7 10.44%, #5E90CD 20.89%, #6B9AD3 31.33%, #78A4D9 39.46%, #85ADDD 46.43%, #91B6E0 52.22%, #9EBDE2 56.86%, #AAC4E4 61.51%, #B5CAE5 66.15%, #BACCE3 70.8%, #B7C8DE 73.59%, #B2C2D8 76.38%, #ACBDD4 79.86%, #A8B8D1 84.05%); }   /* the ground 2% higher (owner, 2026-11-02) */
+  .abs { position: absolute; }
+  .stmt { position: absolute; translate: -50%; color: #FFFFFFBF; font-family: 'Deck Inter', Inter, sans-serif;
+    font-size: 30px; font-weight: 600; line-height: 44px; text-align: center; letter-spacing: 0;
+    font-synthesis: none; font-optical-sizing: auto; }
+  .stmt > span { display: block; white-space: nowrap; }
+  /* a photo sits in a window; the window and the photo slide against each other, so the reveal is all transforms */
+  .card { position: absolute; left: 0; top: 0; will-change: transform; }   /* a card's photo layers and line float together */
+  .win { width: 450px; height: 450px; overflow: hidden; will-change: transform; }
+  .photo { position: absolute; left: 0; top: 0; width: 450px; height: 450px; background-repeat: no-repeat;
+    background-position: 50% 0%; background-size: 450px 450px; will-change: transform, opacity; }
+  /* the board's shadow (450×20, #424E6661, blur 9.33) drawn once into shadow.png, so no browser blurs it live */
+  .shadow { width: 510px; height: 80px; background: url(shadow.png) 0 0 / 100% 100% no-repeat; will-change: transform, opacity; }
+  .mark { top: 0; width: 525px; height: 9px; background: #FFFFFF4D; transform-origin: 50% 0; will-change: transform; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: min(100%, calc((100vh - 150px) * 16 / 9)); font-size: 13px; color: var(--ui); }
+  button { font: inherit; color: var(--ui-strong); background: var(--chip); border: 1px solid #2A313C; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button:hover, a.link:hover { border-color: #3B4554; }
+  a.link { color: var(--ui-strong); background: var(--chip); border: 1px solid #2A313C; border-radius: 8px; padding: 6px 12px; text-decoration: none; }
+  button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .group { display: flex; gap: 6px; align-items: center; }
+  .track { position: relative; flex: 1 1 320px; height: 34px; display: flex; align-items: flex-end; min-width: 220px; }
+  .track input { width: 100%; margin: 0; accent-color: var(--accent); }
+  .tick { position: absolute; top: 9px; width: 1px; height: 7px; background: #4A5363; translate: -50%; cursor: pointer; }
+  .tick:hover { background: var(--ui-strong); }
+  button:disabled { opacity: .35; cursor: default; }
+  button:disabled:hover { border-color: #2A313C; }
+  .nav button.arrow { font-size: 16px; line-height: 1; padding: 6px 14px; }
+  #stage { cursor: pointer; }
+  .time { font-variant-numeric: tabular-nums; min-width: 92px; text-align: right; }
+  .sweep input { width: 130px; accent-color: var(--accent); }
+  .sweep .time { min-width: 48px; }
+  button:focus-visible, .track input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* full screen: the controls go, the slide fills the screen on black, letterboxed to 16:9 */
+  body.present { padding: 0; background: #000; }
+  body.present .controls { display: none; }
+  body.present #viewport { position: fixed; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; background: #000; }
+  /* the sky and floor run on past the slide to every edge of the screen, so there are no black bars on 16:10 or ultrawide */
+  body.present.idle, body.present.idle #stage { cursor: none; }
+</style>
+</head>
+<body>
+  <div id="viewport">
+    <div id="stage">
+      <svg class="abs" style="left:910.5px; top:80px" width="99" height="49" viewBox="0.016 0.016 99.009 49.013" aria-hidden="true">
+        <path transform="translate(0 10.3)" d="M3.793 3.476C5.887 3.476 7.587 5.289 7.587 7.526 7.587 9.763 5.887 11.578 3.793 11.578 1.699 11.578 0 9.763 0 7.526 0 5.289 1.699 3.476 3.793 3.476Z" fill="#FFFFFF12"/>
+        <path transform="translate(13.33 0)" d="M7.153 0.001C9.249 0.001 10.949 1.814 10.949 4.052 10.949 6.288 9.249 8.103 7.153 8.103 5.059 8.103 3.362 6.288 3.362 4.052 3.362 1.814 5.059 0.001 7.153 0.001Z" fill="#FFFFFF12"/>
+        <path transform="translate(26.35 10.3)" d="M10.435 3.476C12.53 3.476 14.23 5.289 14.23 7.526 14.23 9.763 12.53 11.578 10.435 11.578 8.341 11.578 6.641 9.763 6.641 7.526 6.641 5.289 8.341 3.476 10.435 3.476Z" fill="#FFFFFF12"/>
+        <path transform="translate(43.02 17.87)" d="M14.642 6.027C16.737 6.027 18.438 7.841 18.438 10.078 18.438 12.315 16.737 14.13 14.642 14.13 12.548 14.13 10.85 12.315 10.85 10.078 10.85 7.841 12.548 6.027 14.642 6.027Z" fill="#FFFFFF12"/>
+        <path transform="translate(47.56 30.6)" d="M15.786 10.326C17.881 10.326 19.579 12.139 19.579 14.376 19.579 16.613 17.881 18.428 15.786 18.428 13.691 18.428 11.994 16.613 11.994 14.376 11.994 12.139 13.691 10.326 15.786 10.326Z" fill="#FFFFFF12"/>
+        <path transform="translate(68.46 30.6)" d="M21.055 10.326C23.151 10.326 24.849 12.139 24.849 14.376 24.849 16.613 23.151 18.428 21.055 18.428 18.96 18.428 17.262 16.613 17.262 14.376 17.262 12.139 18.96 10.326 21.055 10.326Z" fill="#FFFFFF12"/>
+        <path transform="translate(73.01 14.54)" d="M22.205 4.905C24.3 4.905 26 6.718 26 8.955 26 11.194 24.3 13.009 22.205 13.009 20.11 13.009 18.413 11.194 18.413 8.955 18.413 6.718 20.11 4.905 22.205 4.905Z" fill="#FFFFFF12"/>
+      </svg>
+      <div class="stmt" id="st0" style="left:50%; top:219px; width:915px"><span>in 1847, frederick douglass started a newspaper in rochester called</span><span>the north star, after the star people followed to escape slavery.</span></div>
+      <div class="stmt" id="st1" style="left:50%; top:219px; width:870px"><span>calvary rogers grew up inside that history, in the same church</span><span>where douglass printed the first issues of the north star.</span></div>
+      <div class="stmt" id="st2" style="left:50%; top:219px; width:767px"><span>as a kid, his elders taught him that space is an interface,</span><span>and stars were the technology that powered it.</span></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="group nav">
+      <button id="prev" class="arrow" aria-label="previous slide">&larr;</button>
+      <div class="group" id="slides"></div>
+      <button id="next" class="arrow" aria-label="next slide">&rarr;</button>
+    </div>
+    <div class="group">
+      <button id="play">pause</button>
+      <button id="replay">replay</button>
+    </div>
+    <div class="track" id="track">
+      <input id="scrub" type="range" min="0" max="10000" value="0" aria-label="this slide's timeline">
+    </div>
+    <div class="group" id="speeds">
+      <button data-speed="0.25">0.25×</button>
+      <button data-speed="0.5">0.5×</button>
+      <button data-speed="1" class="on">1×</button>
+    </div>
+    <span class="time" id="time">0.00 s</span>
+    <label class="group sweep" for="sweep" title="how long the line takes to travel up or down">line
+      <input id="sweep" type="range" min="300" max="1600" step="50" value="1100" aria-label="line travel time">
+      <span class="time" id="sweepv">1.10 s</span></label>
+    <button id="full" title="F">full screen</button>
+    <a class="link" href="signin.html">&larr; sign in</a>
+    <a class="link" href="index.html">menu</a>
+  </div>
+
+<script>
+  // Built from the Paper boards on "Page 6": slide 1 = A1S, A0A, 9ZR, 9Z9, A0T, A1B, A2X, 9Y7, 9YR;
+  // 1.1 = A3I … A7I; 1.2 = A8V … ACV. The nine boards of a slide: 1 the statement (earlier photos faded) · 2 a line
+  // stretches out from its centre above the card · 3 it reaches the card's width · 4–5 it sweeps down; above it the
+  // photo is at full, below it the card is as it was · 6 the photo is whole, its shadow arrives · 7 the line rests
+  // below the card · 8 it closes back into its centre · 9 it is gone.
+  // Lines do every change of a photo. A line sweeping down brings a photo to full (from blank the first time, from
+  // faded after that); a line rising from the bottom takes a photo down to faded. Forward and back both run two
+  // lines at once with the same timing: one rising over the photo being left, one falling over the photo arriving.
+  // The statements change letter by letter in the direction of travel.
+  // Everything that moves per frame is a transform or an opacity, so each line and its photo edge stay locked.
+  const LEFTS = [156, 733, 1311], W = 450, TOP = 397, BOTTOM = TOP + W, SH_TOP = 946, SH_PAD = 30;
+  const PHOTOS = ['photos/douglass.jpg', 'photos/kid.jpg', 'photos/elder.jpg'];   // the deck's newest photos, as Paper shows them (cover crop, its saturation)
+  const LINE_Y = 343, REST_Y = BOTTOM + 47.67, LINE_W = 525;   // the line runs 37.5 past each side of its photo   // the line's top and bottom stops (894.67)
+  const FULL = .95, FADED = .05, SH_FADED = .35;
+  const NAMES = ['1', '1.1', '1.2'];
+
+  // timing (ms at 1×)
+  const GROW = 480, GAP = 80, SETTLE = 140;                    // line: stretch open, pause, travel, pause, close (= GROW)
+  let SWEEP = 1100;                                            // travel time up or down; the "line" slider sets it
+  let LINE_DUR = GROW + GAP + SWEEP + SETTLE + GROW;
+  const SH_DELAY = 120, SH_FADE = 800;                         // a shadow arrives once its photo is whole
+  const START_AT = 150, LINES_AT = 150, FADE_IN = 650;        // first build · both lines of a change start stretching · skipped photo
+  const TEXT_END = LINES_AT + GROW;                            // the letter change runs exactly while the lines stretch open
+  const FEATHER = 160, TEXT_GAP = 50;                          // letter change: soft edge, gap between old and new
+  const FLOAT = 4, FLOAT_PERIOD = 6000;                         // photos drift ±4px over 6s, each card a third of a cycle apart
+  const RUSH = 3;   // a key pressed mid-change hurries what is left of it this much, except while a line is sweeping
+
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const soft = u => (1 - Math.cos(Math.PI * u)) / 2;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const inverse = (f, y) => { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; (f(m) < y ? lo = m : hi = m); } return (lo + hi) / 2; };
+  // the line travels at an even speed with short soft ramps, so it never jumps much more than its own height per frame
+  const RAMP = .2, VMAX = 1 / (1 - RAMP);
+  const travel = u => u < RAMP ? VMAX * u * u / (2 * RAMP) : u < 1 - RAMP ? VMAX * (RAMP / 2 + u - RAMP) : 1 - VMAX * (1 - u) * (1 - u) / (2 * RAMP);
+  function lineAt(t, y0, y1) {
+    const open = ease(clamp(t / GROW)), close = ease(clamp((t - GROW - GAP - SWEEP - SETTLE) / GROW));
+    return { y: y0 + (y1 - y0) * travel(clamp((t - GROW - GAP) / SWEEP)), w: LINE_W * open * (1 - close) };
+  }
+  const reaches = (y0, y1, y) => GROW + GAP + SWEEP * inverse(travel, (y - y0) / (y1 - y0));   // when a line gets to y
+
+  // how a card can look when nothing is moving; edge = where the full photo ends (above it full, below it the base)
+  const LOOKS = {
+    blank: { edge: TOP, fullOp: FULL, baseOp: 0, sh: 0 },
+    faded: { edge: TOP, fullOp: FULL, baseOp: FADED, sh: SH_FADED },
+    full:  { edge: BOTTOM, fullOp: FULL, baseOp: FADED, sh: 1 },
+  };
+  const still = look => ({ ...LOOKS[look], line: null });
+
+  // one card's change inside a scene: a function of scene time, and when it is done
+  function cardChange(kind, from, start) {
+    if (kind === 'hold') return { at: () => still(from), end: 0 };
+    if (kind === 'reveal') {                                    // line down: the photo comes to full above it
+      const base = LOOKS[from], whole = start + reaches(LINE_Y, REST_Y, BOTTOM);
+      return { start, sweeps: [[start + GROW + GAP, start + GROW + GAP + SWEEP]], end: Math.max(start + LINE_DUR, whole + SH_DELAY + SH_FADE), whole,
+        at: t => { const l = lineAt(t - start, LINE_Y, REST_Y);
+          return { edge: clamp(l.y, TOP, BOTTOM), fullOp: FULL, baseOp: base.baseOp, line: l,
+                   sh: base.sh + (1 - base.sh) * soft(clamp((t - whole - SH_DELAY) / SH_FADE)) }; } };
+    }
+    if (kind === 'lower') {                                     // line up from the bottom: below it the photo is faded
+      return { start, sweeps: [[start + GROW + GAP, start + GROW + GAP + SWEEP]], end: start + LINE_DUR,
+        at: t => { const l = lineAt(t - start, REST_Y, LINE_Y), p = clamp((t - start - GROW - GAP) / SWEEP);
+          return { edge: clamp(l.y, TOP, BOTTOM), fullOp: FULL, baseOp: FADED, line: l, sh: 1 - (1 - SH_FADED) * soft(p) }; } };
+    }
+    if (kind === 'fadeIn') return { start, end: start + FADE_IN,   // only when skipping past a slide: its photo arrives faded
+      at: t => { const p = soft(clamp((t - start) / FADE_IN)); return { edge: TOP, fullOp: FULL, baseOp: FADED * p, sh: SH_FADED * p, line: null }; } };
+  }
+
+  // a scene takes the deck from how it looks now to slide `to`
+  let looks = ['blank', 'blank', 'blank'], cur = 0;
+  function makeScene(to, kind) {                                // kind: start · forward · back · replay
+    const target = looks.map((l, i) => i === to ? 'full' : (l !== 'blank' || i < to) ? 'faded' : 'blank');
+    const changes = looks.map((from, i) => {
+      const goal = target[i];
+      if (kind === 'replay' && i === to) {                      // a line takes it down, then a line brings it back up
+        const d = cardChange('lower', 'full', 0), back = LINE_DUR + 80, r = cardChange('reveal', 'faded', back);
+        return { ...r, sweeps: d.sweeps.concat(r.sweeps), at: t => t < back ? d.at(t) : r.at(t) };
+      }
+      if (from === goal) return cardChange('hold', from);
+      if (goal === 'full') return cardChange('reveal', from, kind === 'start' ? START_AT : LINES_AT);
+      if (from === 'full') return cardChange('lower', from, LINES_AT);   // same start, same timing as the falling line
+      return cardChange('fadeIn', from, 0);
+    });
+    const sc = { to, kind, target, changes, dir: kind === 'back' ? -1 : 1,
+      text: (kind === 'forward' || kind === 'back') ? { from: cur, to } : null };
+    sc.dur = Math.max(sc.text ? TEXT_END : 0, ...changes.map(c => c.end));
+    const rv = changes[to];
+    if (rv.whole !== undefined) {                               // the nine boards, along the reveal
+      const s0 = rv.start, at = y => s0 + reaches(LINE_Y, REST_Y, y);
+      sc.boards = [s0, s0 + GROW / 2, s0 + GROW, at(TOP + 143.54), at(TOP + 326.25), at(BOTTOM + 26.67),
+                   s0 + GROW + GAP + SWEEP, s0 + GROW + GAP + SWEEP + SETTLE + GROW / 2, s0 + LINE_DUR];
+    }
+    return sc;
+  }
+
+  // statements: every letter is its own span (layout unchanged), so letters can change one after another
+  const stmts = [0, 1, 2].map(j => {
+    const el = document.getElementById('st' + j), chars = [];
+    el.querySelectorAll(':scope > span').forEach(line => {
+      const text = line.textContent; line.textContent = '';
+      for (const c of text) { const sp = document.createElement('span'); sp.textContent = c; line.appendChild(sp); chars.push({ el: sp, x: 0 }); }
+    });
+    return { el, chars };
+  });
+  function measure() {                                          // each letter's centre on the 1920 stage
+    for (const st of stmts) { const box = st.el.getBoundingClientRect();
+      for (const ch of st.chars) { const r = ch.el.getBoundingClientRect(); ch.x = 960 + ((r.left + r.width / 2) - (box.left + box.width / 2)) / stageScale; }
+      // a letter's turn: its rank from the left of the sentence, 0 (leftmost) … 1 (rightmost); both lines share it
+      const order = st.chars.slice().sort((p, q) => p.x - q.x);
+      order.forEach((ch, i) => { ch.turn = order.length > 1 ? i / (order.length - 1) : 0; }); }
+  }
+  // the letters change in the direction of travel, left to right on next and right to left on back, on the
+  // lines' own easing. Each letter's turn is its rank across the sentence, so the share of the sentence changed
+  // always equals how far the lines have opened, and the last letters land on the frame the lines reach full
+  // width. At any one spot the old letter is gone before the new one starts.
+  const LETTER = .15;                                          // each letter fades over 15% of the stretch
+  function textAt(sc, t) {                                      // null when not changing; else letters' opacities
+    if (!sc.text || t >= TEXT_END) return null;
+    const p = ease(clamp((t - LINES_AT) / GROW)), at = c => (sc.dir < 0 ? 1 - c.turn : c.turn) * (1 - 2 * LETTER);
+    return { from: sc.text.from, to: sc.text.to,
+      old: stmts[sc.text.from].chars.map(c => 1 - soft(clamp((p - at(c)) / LETTER))),
+      neu: stmts[sc.text.to].chars.map(c => soft(clamp((p - at(c) - LETTER) / LETTER))) };
+  }
+
+  // build the cards: a shadow on the floor, then a floating group with the faded base, the full photo and the line
+  const stage = document.getElementById('stage'), els = [];
+  const make = (cls, parent = stage) => { const d = document.createElement('div'); d.className = cls; parent.appendChild(d); return d; };
+  for (let i = 0; i < 3; i++) {
+    const sh = make('abs shadow'); Object.assign(sh.style, { left: (LEFTS[i] - SH_PAD) + 'px', top: (SH_TOP - SH_PAD) + 'px' });
+    const card = make('card');
+    const layer = () => { const win = make('abs win', card); Object.assign(win.style, { left: LEFTS[i] + 'px', top: TOP + 'px' });
+      const photo = make('photo', win); photo.style.backgroundImage = `url(${PHOTOS[i]})`; return { win, photo }; };
+    els[i] = { sh, card, base: layer(), full: layer() };
+    els[i].mk = make('abs mark', card); els[i].mk.style.left = (LEFTS[i] - (LINE_W - W) / 2) + 'px';
+  }
+
+  let forceTextDone = false, floatOn = true, floatClock = 0;   // the board-check renders turn the float off
+  let stageScale = 1;
+  function render(sc, t) {
+    const tx = forceTextDone ? null : textAt(sc, t);
+    stmts.forEach((st, j) => {
+      const on = tx && (j === tx.from || j === tx.to);
+      st.el.style.opacity = on || j === sc.to ? 1 : 0;
+      if (on) { st.chars.forEach((ch, n) => ch.el.style.opacity = j === tx.from ? tx.old[n] : tx.neu[n]); st.dirty = true; }
+      else if (st.dirty) { st.chars.forEach(ch => ch.el.style.opacity = ''); st.dirty = false; }
+    });
+    const px = stageScale * (window.devicePixelRatio || 1);    // device pixels per stage pixel
+    sc.changes.forEach((c, i) => {
+      const s = c.at(t), e = els[i];
+      // float: the card drifts on a slow sine; its shadow stays on the floor, a touch lighter and narrower when it is high
+      const f = floatOn ? FLOAT * Math.sin(2 * Math.PI * floatClock / FLOAT_PERIOD + i * 2 * Math.PI / 3) : 0, low = (f / FLOAT + 1) / 2;
+      // the photo's edge and its line land on whole device pixels, so their edges stay crisp and never shimmer
+      const snap = y => Math.round((y + f) * px) / px - f;
+      const edge = s.edge <= TOP || s.edge >= BOTTOM ? s.edge : snap(s.edge), hid = BOTTOM - edge, shown = edge - TOP;
+      e.card.style.transform = `translate3d(0, ${f}px, 0)`;
+      e.full.win.style.transform = `translate3d(0, ${-hid}px, 0)`; e.full.photo.style.transform = `translate3d(0, ${hid}px, 0)`;
+      e.full.photo.style.opacity = s.fullOp;
+      e.base.win.style.transform = `translate3d(0, ${shown}px, 0)`; e.base.photo.style.transform = `translate3d(0, ${-shown}px, 0)`;
+      e.base.photo.style.opacity = s.baseOp;
+      e.sh.style.opacity = s.sh * (.85 + .15 * low);
+      e.sh.style.transform = `scaleX(${.95 + .05 * low})`;
+      e.mk.style.transform = s.line ? `translate3d(0, ${snap(s.line.y)}px, 0) scaleX(${s.line.w / LINE_W})` : 'scaleX(0)';
+    });
+  }
+
+  // playback: a scene plays and holds. A key pressed mid-scene finishes it quickly, then plays the next one.
+  const $ = id => document.getElementById(id);
+  let scene = makeScene(0, 'start'), t = 0, speed = 1, playing = true, last = performance.now(), queued = null, rushed = 0;
+  const scrub = $('scrub');
+  function settle() { looks = scene.target.slice(); cur = scene.to; }
+  function begin(k, kind) { settle(); scene = makeScene(k, kind); t = 0; markSlide(k); drawTicks(); setPlaying(true); }
+  function go(k, kind = k < cur ? 'back' : 'forward') {
+    const at = queued ? queued.k : scene.to;
+    if (k < 0 || k >= NAMES.length || (k === at && kind !== 'replay')) return;
+    if (t < scene.dur) { queued = { k, kind }; rushed = 0; setPlaying(true); markSlide(k); }
+    else begin(k, kind);
+  }
+  const next = () => go((queued ? queued.k : scene.to) + 1, 'forward');
+  const prev = () => go((queued ? queued.k : scene.to) - 1, 'back');
+
+  function frame(now) {
+    const dt = Math.min(now - last, 34) * speed; last = now;   // a slow frame slows the motion rather than making it jump
+    if (!ready) { render(scene, 0); requestAnimationFrame(frame); return; }
+    if (playing) floatClock += dt;
+    if (queued) rushed += dt;
+    const sweeping = scene.changes.some(c => (c.sweeps || []).some(([a, b]) => t >= a && t < b));
+    if (playing) t = Math.min(t + dt * (queued && !sweeping ? 1 + (RUSH - 1) * clamp(rushed / 200) : 1), scene.dur);
+    if (queued && t >= scene.dur) { const q = queued; queued = null; begin(q.k, q.kind); }
+    render(scene, t);
+    scrub.value = Math.round(t / scene.dur * 10000);
+    $('time').textContent = (t / 1000).toFixed(2) + ' s';
+    requestAnimationFrame(frame);
+  }
+  function setPlaying(p) { playing = p; $('play').textContent = p ? 'pause' : 'play'; }
+  $('play').onclick = () => { if (t >= scene.dur) t = 0; setPlaying(!playing); };
+  $('replay').onclick = () => go(scene.to, 'replay');
+  $('next').onclick = next;
+  $('prev').onclick = prev;
+  stage.onclick = next;
+  scrub.oninput = () => { queued = null; t = scrub.value / 10000 * scene.dur; setPlaying(false); };
+  document.querySelectorAll('#speeds button').forEach(btn => btn.onclick = () => {
+    speed = +btn.dataset.speed;
+    document.querySelectorAll('#speeds button').forEach(x => x.classList.toggle('on', x === btn));
+  });
+
+  // slide buttons, and a tick on the timeline for each of the nine boards of the current scene's reveal
+  const slideBtns = NAMES.map((name, k) => {
+    const b = document.createElement('button'); b.textContent = name; b.onclick = () => go(k);
+    $('slides').appendChild(b); return b;
+  });
+  function markSlide(n) {
+    slideBtns.forEach((b, k) => b.classList.toggle('on', k === n));
+    $('prev').disabled = n === 0; $('next').disabled = n === NAMES.length - 1;
+  }
+  function drawTicks() {
+    $('track').querySelectorAll('.tick').forEach(x => x.remove());
+    (scene.boards || []).forEach((bt, n) => {
+      const tick = document.createElement('span');
+      tick.className = 'tick'; tick.style.left = (bt / scene.dur * 100) + '%'; tick.title = `board ${n + 1}`;
+      tick.onclick = () => { queued = null; t = bt; setPlaying(false); };
+      $('track').appendChild(tick);
+    });
+  }
+  markSlide(0); drawTicks();
+  // a direct link to a slide (opening.html#1.1): the slides before it already faded, its words and photo arriving
+  const fromHash = () => NAMES.indexOf(decodeURIComponent(location.hash.slice(1)));
+  function arriveAt(k) {
+    looks = [0, 1, 2].map(i => i < k ? 'faded' : 'blank'); cur = k; queued = null;
+    scene = makeScene(k, 'start'); t = 0; markSlide(k); drawTicks(); setPlaying(true);
+  }
+  if (fromHash() > 0) arriveAt(fromHash());
+  addEventListener('hashchange', () => { const k = fromHash(); if (k >= 0 && k !== scene.to) go(k); });
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); next(); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); prev(); }
+    if (e.key === 'r') go(scene.to, 'replay');
+    const n = +e.key; if (n >= 1 && n <= 3) go(n - 1);
+  });
+
+  // a slide's board state as the boards draw it (the slides before it already shown), for checking renders
+  function boardScene(k) {
+    looks = [0, 1, 2].map(i => i < k ? 'faded' : 'blank'); cur = Math.max(0, k - 1);
+    return makeScene(k, k === 0 ? 'start' : 'forward');
+  }
+
+  const scale = () => stageScale;
+  // the slide's own sky stops, so the screen around it continues the same gradient
+  const SKY = [['#477DC1', 0], ['#5286C7', 10.44], ['#5E90CD', 20.89], ['#6B9AD3', 31.33], ['#78A4D9', 39.46], ['#85ADDD', 46.43], ['#91B6E0', 52.22],
+    ['#9EBDE2', 56.86], ['#AAC4E4', 61.51], ['#B5CAE5', 66.15], ['#BACCE3', 70.8], ['#B7C8DE', 73.59], ['#B2C2D8', 76.38], ['#ACBDD4', 79.86], ['#A8B8D1', 84.05]];
+  let presenting = false, idleTimer = 0;
+  const fit = () => {
+    const vp = $('viewport'), w = vp.clientWidth, h = vp.clientHeight;
+    stageScale = presenting ? Math.min(w / 1920, h / 1080) : w / 1920;
+    const ox = presenting ? (w - 1920 * stageScale) / 2 : 0, oy = presenting ? (h - 1080 * stageScale) / 2 : 0;
+    stage.style.transform = `translate(${ox}px, ${oy}px) scale(${stageScale})`;
+    vp.style.background = presenting ? `linear-gradient(in oklab 180deg, ${SKY.map(([c, p]) => `${c} ${(oy + p / 100 * 1080 * stageScale).toFixed(1)}px`).join(', ')})` : '';
+    measure();
+  };
+  addEventListener('resize', fit); fit();
+
+  // full screen (F, or the button): asks the browser for full screen, and fills the window either way
+  function present(on) {
+    if (on === presenting) return;
+    presenting = on; document.body.classList.toggle('present', on); $('full').textContent = on ? 'exit full screen' : 'full screen';
+    if (on) document.documentElement.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    requestAnimationFrame(fit); wake();
+  }
+  function wake() {                                            // the cursor hides after 2s still while presenting
+    document.body.classList.remove('idle'); clearTimeout(idleTimer);
+    if (presenting) idleTimer = setTimeout(() => document.body.classList.add('idle'), 2000);
+  }
+  $('full').onclick = () => present(!presenting);
+  addEventListener('mousemove', wake);
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) present(false); else fit(); });
+  addEventListener('keydown', e => {
+    if (e.key === 'f' || e.key === 'F') present(!presenting);
+    if (e.key === 'Escape') present(false);
+  });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) floatOn = false;
+
+  // line speed: shorter travel = a faster reveal. Applies from the next change; letting go replays the slide with it.
+  const sweepIn = $('sweep');
+  const setSweep = v => { SWEEP = +v; LINE_DUR = GROW + GAP + SWEEP + SETTLE + GROW; $('sweepv').textContent = (SWEEP / 1000).toFixed(2) + ' s'; };
+  try { const saved = localStorage.getItem('northstar-sweep'); if (saved) { sweepIn.value = saved; setSweep(saved); } } catch (e) {}
+  sweepIn.oninput = () => $('sweepv').textContent = (sweepIn.value / 1000).toFixed(2) + ' s';
+  sweepIn.onchange = () => {
+    queued = null; t = scene.dur;                                // finish what's running at its end state, then apply
+    setSweep(sweepIn.value);
+    try { localStorage.setItem('northstar-sweep', sweepIn.value); } catch (e) {}
+    begin(scene.to, 'replay');
+  };
+  // nothing moves until the type and all three photos are decoded, so no line ever sweeps over a photo still loading
+  let ready = false;
+  Promise.all([document.fonts.ready, ...PHOTOS.concat('shadow.png').map(src => { const im = new Image(); im.src = src; return im.decode().catch(() => {}); })])
+    .then(() => { measure(); ready = true; last = performance.now(); });
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>
